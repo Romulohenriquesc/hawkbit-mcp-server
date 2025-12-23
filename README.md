@@ -42,6 +42,24 @@ Ou diretamente com Maven:
 ./mvnw spring-boot:run
 ```
 
+## 🔌 Importando no MCP Client
+
+Adicione a seguinte configuração ao seu arquivo de configurações do MCP:
+
+```json
+{
+    "mcpServers": {
+        "hawkbit-mcp-server": {
+            "command": "/Users/romulo/.sdkman/candidates/java/21.0.9-amzn/bin/java",
+            "args": [
+                "-jar",
+                "/Users/romulo/dev/hawkbit-mcp-server/target/hawkbit-mcp-server-0.0.1-SNAPSHOT.jar"
+            ]
+        }
+    }
+}
+```
+
 ## 📦 Funcionalidades (Ferramentas MCP)
 
 Este servidor expõe ferramentas para interagir com o Hawkbit, incluindo:
