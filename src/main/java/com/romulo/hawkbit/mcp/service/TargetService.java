@@ -256,7 +256,7 @@ public class TargetService {
 
     // Target Type Tools
 
-    @McpTool(name = "manageTargetType", description = "Manage target type for a specific target by its controller ID(ASSIGN or UNASSIGN)")
+    @McpTool(name = "manageTargetTypeAssignment", description = "Manage target type for a specific target by its controller ID(ASSIGN or UNASSIGN)")
     String manageTargetType(
             @McpToolParam(description = "Controller ID of the Target", required = true) String controllerId,
 

@@ -8,6 +8,8 @@ import org.eclipse.hawkbit.mgmt.json.model.rolloutgroup.MgmtRolloutGroupResponse
 import org.eclipse.hawkbit.mgmt.json.model.target.MgmtTarget;
 import org.eclipse.hawkbit.mgmt.rest.api.MgmtRestConstants;
 import org.eclipse.hawkbit.mgmt.rest.api.MgmtRolloutRestApi;
+import org.eclipse.hawkbit.sdk.HawkbitClient;
+import org.eclipse.hawkbit.sdk.Tenant;
 import org.springaicommunity.mcp.annotation.McpTool;
 import org.springaicommunity.mcp.annotation.McpToolParam;
 import org.springframework.stereotype.Service;
@@ -17,8 +19,8 @@ public class RolloutService {
 
     private final MgmtRolloutRestApi rolloutRestApi;
 
-    public RolloutService(MgmtRolloutRestApi rolloutRestApi) {
-        this.rolloutRestApi = rolloutRestApi;
+    public RolloutService(final HawkbitClient hawkbitClient, final Tenant tenant) {
+        this.rolloutRestApi = hawkbitClient.mgmtService(MgmtRolloutRestApi.class, tenant);
     }
 
     @McpTool(name = "getRollouts", description = "Get all Rollouts")
