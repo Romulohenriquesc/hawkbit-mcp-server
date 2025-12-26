@@ -12,11 +12,8 @@ import org.eclipse.hawkbit.mgmt.json.model.action.MgmtAction;
 import org.eclipse.hawkbit.mgmt.json.model.action.MgmtActionConfirmationRequestBodyPut;
 import org.eclipse.hawkbit.mgmt.json.model.action.MgmtActionRequestBodyPut;
 import org.eclipse.hawkbit.mgmt.json.model.action.MgmtActionStatus;
-import org.eclipse.hawkbit.mgmt.json.model.distributionset.MgmtDistributionSet;
-import org.eclipse.hawkbit.mgmt.json.model.tag.MgmtTag;
 import org.eclipse.hawkbit.mgmt.json.model.target.MgmtDistributionSetAssignments;
 import org.eclipse.hawkbit.mgmt.json.model.target.MgmtTarget;
-import org.eclipse.hawkbit.mgmt.json.model.target.MgmtTargetAttributes;
 import org.eclipse.hawkbit.mgmt.json.model.target.MgmtTargetAutoConfirmUpdate;
 import org.eclipse.hawkbit.mgmt.json.model.target.MgmtTargetRequestBody;
 import org.eclipse.hawkbit.mgmt.rest.api.MgmtTargetRestApi;
@@ -33,6 +30,103 @@ public class TargetService {
 
     TargetService(final HawkbitClient hawkbitClient, final Tenant tenant) {
         this.mgmtTargetRestApi = hawkbitClient.mgmtService(MgmtTargetRestApi.class, tenant);
+    }
+
+    @McpTool(name = "getTargetDetails", description = "Get detailed information about a Target. Can include attributes, tags, and distribution sets in the same call.")
+    public Map<String, Object> getTargetDetails(
+            @McpToolParam(description = "Controller ID of the Target", required = true) String controllerId,
+
+            @McpToolParam(description = "Include target attributes?", required = false) boolean includeAttributes,
+
+            @McpToolParam(description = "Include target tags?", required = false) boolean includeTags,
+
+            @McpToolParam(description = "Include Distribution Sets (installed and assigned)?", required = false) boolean includeDistributionSets) {
+        Map<String, Object> result = new HashMap<>();
+
+        result.put("target", mgmtTargetRestApi.getTarget(controllerId).getBody());
+
+        if (includeAttributes) {
+            try {
+                result.put("attributes", mgmtTargetRestApi.getAttributes(controllerId).getBody());
+            } catch (Exception e) {
+                result.put("attributes_error", "Failed to load attributes: " + e.getMessage());
+            }
+        }
+
+        if (includeTags) {
+            try {
+                result.put("tags", mgmtTargetRestApi.getTags(controllerId).getBody());
+            } catch (Exception e) {
+                result.put("tags_error", e.getMessage());
+            }
+        }
+
+        if (includeDistributionSets) {
+            try {
+                Map<String, Object> dsInfo = new HashMap<>();
+                dsInfo.put("assigned", mgmtTargetRestApi.getAssignedDistributionSet(controllerId).getBody());
+                dsInfo.put("installed", mgmtTargetRestApi.getInstalledDistributionSet(controllerId).getBody());
+                result.put("distributionSets", dsInfo);
+            } catch (Exception e) {
+                result.put("distributionSets_error", e.getMessage());
+            }
+        }
+
+        return result;
+    }
+
+    @McpTool(name = "manageTargetMetadata", description = "Manage metadata for a Target (CRUD operations).")
+    public Object manageTargetMetadata(
+            @McpToolParam(description = "Controller ID of the Target", required = true) String controllerId,
+
+            @McpToolParam(description = "Action to be performed", required = true) MetadataAction action,
+
+            @McpToolParam(description = "Metadata key (Required for GET_SINGLE, UPDATE, DELETE)", required = false) String key,
+
+            @McpToolParam(description = "List of metadata for creation (Required for CREATE)", required = false) List<MgmtMetadata> metadataList,
+
+            @McpToolParam(description = "Metadata body for update (Required for UPDATE)", required = false) MgmtMetadataBodyPut metadataBody,
+
+            @McpToolParam(description = "Confirm write operation (CREATE, UPDATE, DELETE)", required = false) Boolean confirm) {
+        // Preview logic for write operations
+        if (isWriteAction(action) && (confirm == null || !confirm)) {
+            return Map.of("status", "PREVIEW", "action", action, "target", controllerId, "key", key);
+        }
+
+        switch (action) {
+            case GET_ALL:
+                return mgmtTargetRestApi.getMetadata(controllerId).getBody();
+
+            case GET_SINGLE:
+                if (key == null)
+                    throw new IllegalArgumentException("Key is required for GET_SINGLE");
+                return mgmtTargetRestApi.getMetadataValue(controllerId, key).getBody();
+
+            case CREATE:
+                if (metadataList == null)
+                    throw new IllegalArgumentException("List of metadata is required for CREATE");
+                mgmtTargetRestApi.createMetadata(controllerId, metadataList);
+                return "Metadata created successfully.";
+
+            case UPDATE:
+                if (key == null || metadataBody == null)
+                    throw new IllegalArgumentException("Key and Body are required for UPDATE");
+                mgmtTargetRestApi.updateMetadata(controllerId, key, metadataBody);
+                return "Metadata " + key + " updated.";
+
+            case DELETE:
+                if (key == null)
+                    throw new IllegalArgumentException("Key is required for DELETE");
+                mgmtTargetRestApi.deleteMetadata(controllerId, key);
+                return "Metadata " + key + " deleted.";
+
+            default:
+                throw new IllegalArgumentException("Unsupported action");
+        }
+    }
+
+    private boolean isWriteAction(MetadataAction action) {
+        return action == MetadataAction.CREATE || action == MetadataAction.UPDATE || action == MetadataAction.DELETE;
     }
 
     // Target tools
@@ -62,11 +156,6 @@ public class TargetService {
         return mgmtTargetRestApi.createTargets(targets).getBody();
     }
 
-    @McpTool(name = "getTarget", description = "Get a specific target by its controller ID")
-    MgmtTarget getTarget(String controllerId) {
-        return mgmtTargetRestApi.getTarget(controllerId).getBody();
-    }
-
     @McpTool(name = "deleteTarget", description = "Delete a specific target by its controller ID")
     Object deleteTarget(
             @McpToolParam(description = "The controller ID of the target", required = true) String controllerId,
@@ -80,66 +169,6 @@ public class TargetService {
         }
 
         return mgmtTargetRestApi.deleteTarget(controllerId).getBody();
-    }
-
-    // Metadata tools
-
-    @McpTool(name = "createMetadata", description = "Create metadata for a specific target by its controller ID")
-    Object createMetadata(
-            @McpToolParam(description = "The controller ID of the target", required = true) String controllerId,
-            @McpToolParam(description = "List of metadata to create", required = true) List<MgmtMetadata> metadataRest,
-            @McpToolParam(description = "Set to true to persist changes. Default false (preview only).", required = false) Boolean confirm) {
-
-        if (confirm == null || !confirm) {
-            Map<String, Object> preview = new HashMap<>();
-            preview.put("message", "PREVIEW MODE: No changes were made. Please confirm to proceed.");
-            preview.put("metadataToCreate", metadataRest);
-            preview.put("target", controllerId);
-            return preview;
-        }
-
-        mgmtTargetRestApi.createMetadata(controllerId, metadataRest);
-        return Map.of("message", "Metadata created successfully", "target", controllerId);
-    }
-
-    @McpTool(name = "deleteMetadata", description = "Delete metadata for a specific target by its controller ID and metadata key")
-    Object deleteMetadata(
-            @McpToolParam(description = "The controller ID of the target", required = true) String controllerId,
-            @McpToolParam(description = "The metadata key to delete", required = true) String metadataKey,
-            @McpToolParam(description = "Set to true to persist changes. Default false (preview only).", required = false) Boolean confirm) {
-
-        if (confirm == null || !confirm) {
-            Map<String, Object> preview = new HashMap<>();
-            preview.put("message", "PREVIEW MODE: No changes were made. Please confirm to proceed.");
-            preview.put("metadataToDelete", metadataKey);
-            preview.put("target", controllerId);
-            return preview;
-        }
-
-        mgmtTargetRestApi.deleteMetadata(controllerId, metadataKey);
-        return Map.of("message", "Metadata deleted successfully", "target", controllerId, "key", metadataKey);
-    }
-
-    @McpTool(name = "getMetadataValue", description = "Get metadata value for a specific target by its controller ID and metadata key")
-    MgmtMetadata getMetadataValue(String controllerId, String metadataKey) {
-        return mgmtTargetRestApi.getMetadataValue(controllerId, metadataKey).getBody();
-    }
-
-    @McpTool(name = "getMetadata", description = "Get metadata for a specific target by its controller ID")
-    PagedList<MgmtMetadata> getMetadata(String controllerId) {
-        return mgmtTargetRestApi.getMetadata(controllerId).getBody();
-    }
-
-    @McpTool(name = "updateMetadata", description = "Update metadata for a specific target by its controller ID and metadata key")
-    void updateMetadata(String controllerId, String metadataKey, MgmtMetadataBodyPut metadata) {
-        mgmtTargetRestApi.updateMetadata(controllerId, metadataKey, metadata);
-    }
-
-    // Attributes tools
-
-    @McpTool(name = "getAttributes", description = "Get attributes for a specific target by its controller ID")
-    MgmtTargetAttributes getAttributes(String controllerId) {
-        return mgmtTargetRestApi.getAttributes(controllerId).getBody();
     }
 
     // Actions tools
@@ -201,24 +230,7 @@ public class TargetService {
         return mgmtTargetRestApi.getActionStatusList(targetId, actionId, offset, limit, sortParam).getBody();
     }
 
-    // Tags tools
-
-    @McpTool(name = "getTags", description = "Get tags for a specific target by its controller ID")
-    List<MgmtTag> getTags(String controllerId) {
-        return mgmtTargetRestApi.getTags(controllerId).getBody();
-    }
-
     // Distribution Set tools
-
-    @McpTool(name = "getInstalledDistributionSet", description = "Get installed distribution set for a specific target by its controller ID")
-    MgmtDistributionSet getInstalledDistributionSet(String controllerId) {
-        return mgmtTargetRestApi.getInstalledDistributionSet(controllerId).getBody();
-    }
-
-    @McpTool(name = "getAssignedDistributionSet", description = "Get assigned distribution set for a specific target by its controller ID")
-    MgmtDistributionSet getAssignedDistributionSet(String controllerId) {
-        return mgmtTargetRestApi.getAssignedDistributionSet(controllerId).getBody();
-    }
 
     @McpTool(name = "assignDistributionSet", description = "Assign distribution set for a specific target by its controller ID")
     Object assignDistributionSet(String controllerId,
@@ -242,28 +254,74 @@ public class TargetService {
         return mgmtTargetRestApi.postAssignedDistributionSet(controllerId, dsAssignments, offline).getBody();
     }
 
-    // Target Type tools
+    // Target Type Tools
 
-    @McpTool(name = "assignTargetType", description = "Assign target type for a specific target by its controller ID")
-    void assignTargetType(String controllerId, MgmtId targetTypeId) {
-        mgmtTargetRestApi.assignTargetType(controllerId, targetTypeId);
+    @McpTool(name = "manageTargetType", description = "Manage target type for a specific target by its controller ID(ASSIGN or UNASSIGN)")
+    String manageTargetType(
+            @McpToolParam(description = "Controller ID of the Target", required = true) String controllerId,
+
+            @McpToolParam(description = "Action to be performed (ASSIGN or UNASSIGN)", required = true) TargetTypeAction action,
+
+            @McpToolParam(description = "ID of the Target Type. Required only if the action is ASSIGN.", required = false) MgmtId targetTypeId) {
+        switch (action) {
+            case ASSIGN:
+                if (targetTypeId == null) {
+                    throw new IllegalArgumentException("targetTypeId is required for the ASSIGN action");
+                }
+                mgmtTargetRestApi.assignTargetType(controllerId, targetTypeId);
+                return "Target Type assigned successfully to target " + controllerId;
+
+            case UNASSIGN:
+                mgmtTargetRestApi.unassignTargetType(controllerId);
+                return "Target Type unassigned successfully from target " + controllerId;
+
+            default:
+                throw new IllegalArgumentException("Unsupported action: " + action);
+        }
     }
 
-    @McpTool(name = "unassignTargetType", description = "Unassign target type for a specific target by its controller ID")
-    void unassignTargetType(String controllerId) {
-        mgmtTargetRestApi.unassignTargetType(controllerId);
+    // Target Auto-Confirm Tools
+
+    @McpTool(name = "manageTargetAutoConfirm", description = "Manage the status of Auto-Confirmation of a target (Activate or Deactivate)")
+    String manageTargetAutoConfirm(
+            @McpToolParam(description = "Controller ID of the Target", required = true) String controllerId,
+
+            @McpToolParam(description = "Action to be performed (ACTIVATE or DEACTIVATE)", required = true) AutoConfirmAction action,
+
+            @McpToolParam(description = "Configuration object for auto-confirmation. Required only if the action is ACTIVATE.", required = false) MgmtTargetAutoConfirmUpdate update) {
+        switch (action) {
+            case ACTIVATE:
+                if (update == null) {
+                    throw new IllegalArgumentException("The 'update' object is required for the ACTIVATE action");
+                }
+                mgmtTargetRestApi.activateAutoConfirm(controllerId, update);
+                return "Auto-Confirmation ACTIVATED for target " + controllerId;
+
+            case DEACTIVATE:
+                mgmtTargetRestApi.deactivateAutoConfirm(controllerId);
+                return "Auto-Confirmation DEACTIVATED for target " + controllerId;
+
+            default:
+                throw new IllegalArgumentException("Unsupported action: " + action);
+        }
     }
 
-    // Target autoconfirm tools
+}
 
-    @McpTool(name = "activateAutoConfirm", description = "Handles the POST request to activate auto-confirmation for a specific target. As a result all current active as well as future actions will automatically be confirmed by mentioning the initiator as triggered person. Actions will be automatically confirmed, as long as auto-confirmation is active.")
-    void activateAutoConfirm(String controllerId, MgmtTargetAutoConfirmUpdate update) {
-        mgmtTargetRestApi.activateAutoConfirm(controllerId, update);
-    }
+enum MetadataAction {
+    GET_ALL,
+    GET_SINGLE,
+    CREATE,
+    UPDATE,
+    DELETE
+}
 
-    @McpTool(name = "deactivateAutoConfirm", description = "Handles the POST request to deactivate auto-confirmation for a specific target. All active actions will remain unchanged while all future actions need to be confirmed, before processing with the deployment.")
-    void deactivateAutoConfirm(String controllerId) {
-        mgmtTargetRestApi.deactivateAutoConfirm(controllerId);
-    }
+enum TargetTypeAction {
+    ASSIGN,
+    UNASSIGN
+}
 
+enum AutoConfirmAction {
+    ACTIVATE,
+    DEACTIVATE
 }
