@@ -32,31 +32,47 @@ public class TargetTagService {
         return mgmtTargetTagRestApi.getTargetTags(rsqlParam, offset, limit, sortParam).getBody();
     }
 
-    @McpTool(name = "getTargetTag", description = "Get a specific Target Tag by its ID")
-    MgmtTag getTargetTag(Long tagId) {
-        return mgmtTargetTagRestApi.getTargetTag(tagId).getBody();
-    }
+    @McpTool(name = "manageTargetTag", description = "Manages the lifecycle of Target Tags (Get, Create, Update, Delete).")
+    Object manageTargetTag(
+            @McpToolParam(description = "The action to perform (GET, CREATE, UPDATE, DELETE)", required = true) TargetTagCrudAction action,
 
-    @McpTool(name = "createTargetTags", description = "Handles the POST request of creating new target tag. The request body must always be a list of target tags.")
-    List<MgmtTag> createTargetTags(List<MgmtTagRequestBodyPut> tags) {
-        return mgmtTargetTagRestApi.createTargetTags(tags).getBody();
-    }
+            @McpToolParam(description = "Tag ID (Required for GET, UPDATE, DELETE)", required = false) Long tagId,
 
-    @McpTool(name = "updateTargetTag", description = "Handles the PUT request of updating a specific target tag by its ID.")
-    MgmtTag updateTargetTag(Long tagId, MgmtTagRequestBodyPut restTargetTagRest) {
-        return mgmtTargetTagRestApi.updateTargetTag(tagId, restTargetTagRest).getBody();
-    }
+            @McpToolParam(description = "List of tags to create (Required for CREATE)", required = false) List<MgmtTagRequestBodyPut> tagsToCreate,
 
-    @McpTool(name = "deleteTargetTag", description = "Handles the DELETE request of deleting a single target tag.")
-    void deleteTargetTag(Long tagId) {
-        mgmtTargetTagRestApi.deleteTargetTag(tagId);
+            @McpToolParam(description = "Tag body to update (Required for UPDATE)", required = false) MgmtTagRequestBodyPut tagToUpdate) {
+        switch (action) {
+            case GET:
+                if (tagId == null)
+                    throw new IllegalArgumentException("Tag ID is required for GET action");
+                return mgmtTargetTagRestApi.getTargetTag(tagId).getBody();
+
+            case CREATE:
+                if (tagsToCreate == null || tagsToCreate.isEmpty())
+                    throw new IllegalArgumentException("List of tags is required for CREATE action");
+                return mgmtTargetTagRestApi.createTargetTags(tagsToCreate).getBody();
+
+            case UPDATE:
+                if (tagId == null || tagToUpdate == null)
+                    throw new IllegalArgumentException("Tag ID and Body are required for UPDATE action");
+                return mgmtTargetTagRestApi.updateTargetTag(tagId, tagToUpdate).getBody();
+
+            case DELETE:
+                if (tagId == null)
+                    throw new IllegalArgumentException("Tag ID is required for DELETE action");
+                mgmtTargetTagRestApi.deleteTargetTag(tagId);
+                return "Target Tag " + tagId + " deleted successfully.";
+
+            default:
+                throw new IllegalArgumentException("Unsupported action: " + action);
+        }
     }
 
     // Target tag assignments tools
 
     @McpTool(name = "getAssignedTargets", description = "Handles the GET request of retrieving a list of assigned targets.")
     PagedList<MgmtTarget> getAssignedTargets(
-            Long targetTagId,
+            @McpToolParam(description = "The ID of the Target Tag", required = true) Long targetTagId,
             @McpToolParam(description = "Feed Item Query Language (FIQL) search filter.", required = false) String rsqlParam,
             @McpToolParam(description = "Offset", required = true) int offset,
             @McpToolParam(description = "Limit. Max value: 50", required = true) int limit,
@@ -64,25 +80,45 @@ public class TargetTagService {
         return mgmtTargetTagRestApi.getAssignedTargets(targetTagId, rsqlParam, offset, limit, sortParam).getBody();
     }
 
-    @McpTool(name = "assignTargets", description = "Handles the POST request of target assignment. Already assigned target will be ignored.")
-    void assignTargets(Long targetTagId, List<String> controllerIds,
+    @McpTool(name = "manageTagAssignments", description = "Manages target assignments for a Target Tag (Assign or Unassign targets).")
+    String manageTagAssignments(
+            @McpToolParam(description = "The ID of the Target Tag", required = true) Long targetTagId,
+
+            @McpToolParam(description = "The action to perform (ASSIGN or UNASSIGN)", required = true) TagAssignmentAction action,
+
+            @McpToolParam(description = "List of Target Controller IDs to assign or unassign", required = true) List<String> controllerIds,
+
             @McpToolParam(description = "On not found policy (default: FAIL)", required = false) OnNotFoundPolicy onNotFoundPolicy) {
-        mgmtTargetTagRestApi.assignTargets(targetTagId, controllerIds, onNotFoundPolicy);
-    }
+        // Use default policy if not provided
+        OnNotFoundPolicy policy = (onNotFoundPolicy != null) ? onNotFoundPolicy : OnNotFoundPolicy.FAIL;
 
-    @McpTool(name = "unassignTargets", description = "Handles the DELETE request to unassign the given targets.")
-    void unassignTargets(Long targetTagId, List<String> controllerIds,
-            @McpToolParam(description = "On not found policy (default: FAIL)", required = false) OnNotFoundPolicy onNotFoundPolicy) {
-        mgmtTargetTagRestApi.unassignTargets(targetTagId, onNotFoundPolicy, controllerIds);
-    }
+        switch (action) {
+            case ASSIGN:
+                if (controllerIds == null || controllerIds.isEmpty())
+                    throw new IllegalArgumentException("Controller IDs list is required for ASSIGN");
+                mgmtTargetTagRestApi.assignTargets(targetTagId, controllerIds, policy);
+                return "Targets assigned successfully to tag " + targetTagId;
 
-    @McpTool(name = "unassignTarget", description = "Handles the DELETE request to unassign the given target.")
-    void unassignTarget(Long targetTagId, String controllerId) {
-        mgmtTargetTagRestApi.unassignTarget(targetTagId, controllerId);
-    }
+            case UNASSIGN:
+                if (controllerIds == null || controllerIds.isEmpty())
+                    throw new IllegalArgumentException("Controller IDs list is required for UNASSIGN");
+                mgmtTargetTagRestApi.unassignTargets(targetTagId, policy, controllerIds);
+                return "Targets unassigned successfully from tag " + targetTagId;
 
-    @McpTool(name = "assignTarget", description = "Handles the POST request of target assignment. Already assigned target will be ignored.")
-    void assignTarget(Long targetTagId, String controllerId) {
-        mgmtTargetTagRestApi.assignTarget(targetTagId, controllerId);
+            default:
+                throw new IllegalArgumentException("Unsupported action: " + action);
+        }
     }
+}
+
+enum TargetTagCrudAction {
+    GET,
+    CREATE,
+    UPDATE,
+    DELETE
+}
+
+enum TagAssignmentAction {
+    ASSIGN,
+    UNASSIGN
 }
