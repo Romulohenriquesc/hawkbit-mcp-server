@@ -1,5 +1,8 @@
 package com.romulo.hawkbit.mcp.service;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.eclipse.hawkbit.mgmt.json.model.PagedList;
 import org.eclipse.hawkbit.mgmt.json.model.rollout.MgmtRolloutResponseBody;
 import org.eclipse.hawkbit.mgmt.json.model.rollout.MgmtRolloutRestRequestBodyPost;
@@ -41,7 +44,23 @@ public class RolloutService {
 
             @McpToolParam(description = "Rollout creation body (Required for CREATE)", required = false) MgmtRolloutRestRequestBodyPost createBody,
 
-            @McpToolParam(description = "Rollout update body (Required for UPDATE)", required = false) MgmtRolloutRestRequestBodyPut updateBody) {
+            @McpToolParam(description = "Rollout update body (Required for UPDATE)", required = false) MgmtRolloutRestRequestBodyPut updateBody,
+
+            @McpToolParam(description = "Set to true to persist changes (CREATE, UPDATE, DELETE). Default false (preview only).", required = false) Boolean confirm) {
+
+        if (action != RolloutCrudAction.GET && (confirm == null || !confirm)) {
+            Map<String, Object> preview = new HashMap<>();
+            preview.put("message", "PREVIEW MODE: No changes were made. Please confirm to proceed.");
+            preview.put("action", action);
+            if (rolloutId != null)
+                preview.put("rolloutId", rolloutId);
+            if (createBody != null)
+                preview.put("createBody", createBody);
+            if (updateBody != null)
+                preview.put("updateBody", updateBody);
+            return preview;
+        }
+
         switch (action) {
             case GET:
                 if (rolloutId == null)
@@ -75,7 +94,19 @@ public class RolloutService {
 
             @McpToolParam(description = "The action to be executed on the Rollout (START, PAUSE, APPROVE, etc)", required = true) RolloutAction action,
 
-            @McpToolParam(description = "Optional remark. Used only for APPROVE or DENY actions.", required = false) String remark) {
+            @McpToolParam(description = "Optional remark. Used only for APPROVE or DENY actions.", required = false) String remark,
+
+            @McpToolParam(description = "Set to true to persist changes. Default false (preview only).", required = false) Boolean confirm) {
+
+        if (confirm == null || !confirm) {
+            Map<String, Object> preview = new HashMap<>();
+            preview.put("message", "PREVIEW MODE: No changes were made. Please confirm to proceed.");
+            preview.put("action", action);
+            preview.put("rolloutId", rolloutId);
+            if (remark != null)
+                preview.put("remark", remark);
+            return preview;
+        }
 
         String finalRemark = (remark != null) ? remark : "";
 
