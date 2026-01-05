@@ -1,4 +1,17 @@
 spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: hawkbit-mcp-server
+            client-secret: 7518f687-51b9-41c7-b2c4-a87efb1a8c93
+            authorization-grant-type: client_credentials
+            scope: openid
+        provider:
+          keycloak:
+            token-uri: http://dev.mobitbrasil.com.br/auth/realms/mobit/protocol/openid-connect/token    
+
   application:
     name: hawkbit-mcp-server
 
@@ -25,3 +38,5 @@ hawkbit:
 
 server:
   port: 8090
+
+        

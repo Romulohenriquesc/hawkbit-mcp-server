@@ -16,9 +16,8 @@ import org.eclipse.hawkbit.mgmt.json.model.target.MgmtDistributionSetAssignments
 import org.eclipse.hawkbit.mgmt.json.model.target.MgmtTarget;
 import org.eclipse.hawkbit.mgmt.json.model.target.MgmtTargetAutoConfirmUpdate;
 import org.eclipse.hawkbit.mgmt.json.model.target.MgmtTargetRequestBody;
+import org.eclipse.hawkbit.mgmt.rest.api.MgmtRestConstants;
 import org.eclipse.hawkbit.mgmt.rest.api.MgmtTargetRestApi;
-import org.eclipse.hawkbit.sdk.HawkbitClient;
-import org.eclipse.hawkbit.sdk.Tenant;
 import org.springaicommunity.mcp.annotation.McpTool;
 import org.springaicommunity.mcp.annotation.McpToolParam;
 import org.springframework.stereotype.Service;
@@ -28,8 +27,8 @@ public class TargetService {
 
     private final MgmtTargetRestApi mgmtTargetRestApi;
 
-    TargetService(final HawkbitClient hawkbitClient, final Tenant tenant) {
-        this.mgmtTargetRestApi = hawkbitClient.mgmtService(MgmtTargetRestApi.class, tenant);
+    TargetService(final MgmtTargetRestApi mgmtTargetRestApi) {
+        this.mgmtTargetRestApi = mgmtTargetRestApi;
     }
 
     @McpTool(name = "getTargetDetails", description = "Get detailed information about a Target. Can include attributes, tags, and distribution sets in the same call.")
