@@ -1,12 +1,14 @@
-package com.romulo.hawkbit.mcp.service.schemas;
+package com.romulo.hawkbit.mcp.feature.target;
 
-import org.springaicommunity.mcp.annotation.McpTool;
+import org.springaicommunity.mcp.annotation.McpResource;
 import org.springframework.stereotype.Service;
 
-// @Service
+import com.romulo.hawkbit.mcp.feature.enumeration.Operator;
+
+@Service
 public class TargetSchemas {
 
-        private static final String TARGET_SEARCH_FIELDS = "id, name, description, createdat, lastmodifiedat, controllerid, updatestatus, ipaddress, lastcontrollerrequestat";
+        public static final String TARGET_SEARCH_FIELDS = "id, name, description, createdat, lastmodifiedat, controllerid, updatestatus(UNKNOWN, IN_SYNC, PENDING, ERROR, REGISTERED), ipaddress, lastcontrollerrequestat";
 
         private static final String TARGET_ATTRIBUTES_FIELDS = "attribute.keyName";
 
@@ -49,9 +51,15 @@ public class TargetSchemas {
                         + TARGET_DISTRIBUTION_SET_FIELDS
                         + "example: controllerid==target-0001';name==target-0001',assignedds.version==1.0.0";
 
-        @McpTool(name = "getTargetSearchFields", description = "Target search fields and their relationships")
-        public static String getTargetSearchFields() {
-                return AVAILABLE_TARGETS_SEARCH_FIELDS;
+        @McpResource(uri = "hawkbit://targets/filter-manual", name = "Target Filtering Manual", description = "Documentation of available fields and operators for filtering targets (FIQL).", mimeType = "text/plain")
+        public String getTargetFilterManual() {
+                return """
+                                # TARGET FILTER FIELDS
+                                %s
+
+                                # FILTER OPERATORS
+                                %s
+                                """.formatted(AVAILABLE_TARGETS_SEARCH_FIELDS, Operator.toDocumentation());
         }
 
 }

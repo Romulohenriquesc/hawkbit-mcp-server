@@ -12,7 +12,7 @@ import org.springaicommunity.mcp.annotation.McpTool;
 import org.springaicommunity.mcp.annotation.McpToolParam;
 import org.springframework.stereotype.Service;
 
-@Service
+// @Service
 public class TargetFilterQueryService {
 
     private final MgmtTargetFilterQueryRestApi targetFilterRestApi;

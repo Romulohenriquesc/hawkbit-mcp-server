@@ -21,7 +21,6 @@ logging:
 hawkbit:
   server:
     mgmt-url: http://localhost:8080
-    ddi-url: http://localhost:8085
 
 server:
   port: 8090
