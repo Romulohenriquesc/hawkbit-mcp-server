@@ -20,19 +20,18 @@ public class TargetMcpService {
 
     @McpTool(name = "listTargets", description = """
             Search for targets (devices) with pagination.
-            Supports complex FIQL queries.
+            Supports FIQL filters.
 
-            AVAILABLE FIELDS FOR FILTERING:
-            """ + TargetSchemas.TARGET_SEARCH_FIELDS
-            + """
-
-                    For advanced fields or sort parameters (attributes, metadata, tags, targettype, installedds, assignedds) and operators,
-                    read the resource: hawkbit://targets/filter-manual
-                    """)
+            Filter schema:
+            hawkbit://targets/filter
+            """)
     PagedList<MgmtTarget> getTargets(
-            @McpToolParam(description = "Feed Item Query Language (FIQL) search filter.  Ex: 'updatestatus==ERROR'.", required = false) String rsqlParam,
-            @McpToolParam(description = "page", required = true) int page,
-            @McpToolParam(description = "size. Max value: 50", required = true) int size,
+            @McpToolParam(description = "FIQL filter expression. Example: updatestatus==ERROR", required = false) String rsqlParam,
+
+            @McpToolParam(description = "Page number (0-based).", required = true) int page,
+
+            @McpToolParam(description = "Page size (max 50).", required = true) int size,
+
             @McpToolParam(description = "Sort parameter. Example: name:asc.", required = false) String sortParam) {
         return targetApi.getTargets(rsqlParam, page, size, sortParam).getBody();
     }
