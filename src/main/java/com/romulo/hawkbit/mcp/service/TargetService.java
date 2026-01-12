@@ -75,7 +75,19 @@ public class TargetService {
         return result;
     }
 
-    @McpTool(name = "manageTargetMetadata", description = "Manage metadata for a Target (CRUD operations).")
+    @McpTool(name = "getTargetMetadata", description = "Get metadata for a Target.")
+    public Object getTargetMetadata(
+            @McpToolParam(description = "Controller ID of the Target", required = true) String controllerId,
+            @McpToolParam(description = "Metadata key. If provided, returns value for this key. If null, returns all metadata.", required = false) String key) {
+        if (key != null) {
+            return mgmtTargetRestApi.getMetadataValue(controllerId, key).getBody();
+        } else {
+            return mgmtTargetRestApi.getMetadata(controllerId).getBody();
+        }
+    }
+
+    // @McpTool(name = "manageTargetMetadata", description = "Manage metadata for a
+    // Target (CRUD operations).")
     public Object manageTargetMetadata(
             @McpToolParam(description = "Controller ID of the Target", required = true) String controllerId,
 
@@ -94,14 +106,6 @@ public class TargetService {
         }
 
         switch (action) {
-            case GET_ALL:
-                return mgmtTargetRestApi.getMetadata(controllerId).getBody();
-
-            case GET_SINGLE:
-                if (key == null)
-                    throw new IllegalArgumentException("Key is required for GET_SINGLE");
-                return mgmtTargetRestApi.getMetadataValue(controllerId, key).getBody();
-
             case CREATE:
                 if (metadataList == null)
                     throw new IllegalArgumentException("List of metadata is required for CREATE");
@@ -131,16 +135,31 @@ public class TargetService {
 
     // Target tools
 
-    @McpTool(name = "getTargets", description = "Get all targets")
+    @McpTool(name = "getTargets", description = "Get all targets. Prefer using rsqlParam to filter results instead of fetching all targets.")
     PagedList<MgmtTarget> getTargets(
-            @McpToolParam(description = "Feed Item Query Language (FIQL) search filter.  Only if necessary, consult getTargetSearchFields with the available fields.", required = false) String rsqlParam,
+            @McpToolParam(description = "Feed Item Query Language (FIQL) search filter. Use this to filter targets efficiently (e.g., 'updatestatus==registered' for targets without distribution set). Consult getTargetSearchFields for available fields.", required = false) String rsqlParam,
             @McpToolParam(description = "Offset", required = true) int offset,
             @McpToolParam(description = "Limit. Max value: 50", required = true) int limit,
             @McpToolParam(description = "Sort parameter. Example: name:asc. Can be use the same sort parameter as the getTargetSearchFields.", required = false) String sortParam) {
         return mgmtTargetRestApi.getTargets(rsqlParam, offset, limit, sortParam).getBody();
     }
 
-    @McpTool(name = "createTargets", description = "Create new targets. Fill only mandatory fields.")
+    @McpTool(name = "getTargetFilterCheatSheet", description = "Returns a list of useful RSQL filter examples for querying targets. Use this to understand how to construct efficient queries.")
+    public List<String> getTargetFilterCheatSheet() {
+        return List.of(
+                "updatestatus==registered (Targets without distribution set assigned)",
+                "updatestatus==error (Targets in error state)",
+                "name==*CCU* (Name contains 'CCU')",
+                "tag=in=(test,qa) (Targets tagged with 'test' or 'qa')",
+                "tag=is=null (Targets without any tag)",
+                "attribute.hw.rev==1.0 (Targets with controller attribute 'hw.rev' equal to '1.0')",
+                "installedds.name==MyDS and installedds.version==1.0.0 (Targets with specific distribution set installed)",
+                "(assignedds.name=='ECU-DS' and description==test) or updatestatus!=error (Complex combination)",
+                "lastControllerRequestAt=le=${OVERDUE_TS} (Overdue targets - replace ${OVERDUE_TS} with timestamp)");
+    }
+
+    // @McpTool(name = "createTargets", description = "Create new targets. Fill only
+    // mandatory fields.")
     Object createTargets(
             @McpToolParam(description = "List of targets to create") List<MgmtTargetRequestBody> targets,
             @McpToolParam(description = "Set to true to persist changes. Default false (preview only).", required = false) Boolean confirm) {
@@ -156,7 +175,8 @@ public class TargetService {
         return mgmtTargetRestApi.createTargets(targets).getBody();
     }
 
-    @McpTool(name = "deleteTarget", description = "Delete a specific target by its controller ID")
+    // @McpTool(name = "deleteTarget", description = "Delete a specific target by
+    // its controller ID")
     Object deleteTarget(
             @McpToolParam(description = "The controller ID of the target", required = true) String controllerId,
             @McpToolParam(description = "Set to true to persist changes. Default false (preview only).", required = false) Boolean confirm) {
@@ -187,7 +207,9 @@ public class TargetService {
         return mgmtTargetRestApi.getAction(controllerId, actionId).getBody();
     }
 
-    @McpTool(name = "cancelAction", description = "Cancel action by id of a specific target. Cancels an active action, only active actions can be deleted.")
+    // @McpTool(name = "cancelAction", description = "Cancel action by id of a
+    // specific target. Cancels an active action, only active actions can be
+    // deleted.")
     Object cancelAction(
             @McpToolParam(description = "The controller ID of the target", required = true) String controllerId,
             @McpToolParam(description = "The action ID to cancel", required = true) Long actionId,
@@ -207,16 +229,17 @@ public class TargetService {
         return Map.of("message", "Action canceled successfully", "actionId", actionId);
     }
 
-    @McpTool(name = "updateAction", description = "Update action by id of a specific target")
+    // @McpTool(name = "updateAction", description = "Update action by id of a
+    // specific target")
     MgmtAction updateAction(String controllerId, Long actionId, MgmtActionRequestBodyPut actionUpdate) {
         return mgmtTargetRestApi.updateAction(controllerId, actionId, actionUpdate).getBody();
     }
 
-    @McpTool(name = "updateActionConfirmation", description = """
-            Either confirm or deny an action which is waiting for confirmation.
-            The action will be transferred into the RUNNING state in case confirming it.
-            The action will remain in WAITING_FOR_CONFIRMATION state in case denying it.
-            """)
+    // @McpTool(name = "updateActionConfirmation", description = """
+    // Either confirm or deny an action which is waiting for confirmation.
+    // The action will be transferred into the RUNNING state in case confirming it.
+    // The action will remain in WAITING_FOR_CONFIRMATION state in case denying it.
+    // """)
     void updateActionConfirmation(String controllerId, Long actionId,
             MgmtActionConfirmationRequestBodyPut actionConfirmation) {
         mgmtTargetRestApi.updateActionConfirmation(controllerId, actionId, actionConfirmation);
@@ -232,7 +255,8 @@ public class TargetService {
 
     // Distribution Set tools
 
-    @McpTool(name = "assignDistributionSet", description = "Assign distribution set for a specific target by its controller ID")
+    // @McpTool(name = "assignDistributionSet", description = "Assign distribution
+    // set for a specific target by its controller ID")
     Object assignDistributionSet(String controllerId,
             MgmtDistributionSetAssignments dsAssignments,
             @McpToolParam(description = """
@@ -256,7 +280,8 @@ public class TargetService {
 
     // Target Type Tools
 
-    @McpTool(name = "manageTargetTypeAssignment", description = "Manage target type for a specific target by its controller ID(ASSIGN or UNASSIGN)")
+    // @McpTool(name = "manageTargetTypeAssignment", description = "Manage target
+    // type for a specific target by its controller ID(ASSIGN or UNASSIGN)")
     String manageTargetType(
             @McpToolParam(description = "Controller ID of the Target", required = true) String controllerId,
 
@@ -282,7 +307,8 @@ public class TargetService {
 
     // Target Auto-Confirm Tools
 
-    @McpTool(name = "manageTargetAutoConfirm", description = "Manage the status of Auto-Confirmation of a target (Activate or Deactivate)")
+    // @McpTool(name = "manageTargetAutoConfirm", description = "Manage the status
+    // of Auto-Confirmation of a target (Activate or Deactivate)")
     String manageTargetAutoConfirm(
             @McpToolParam(description = "Controller ID of the Target", required = true) String controllerId,
 
@@ -309,8 +335,6 @@ public class TargetService {
 }
 
 enum MetadataAction {
-    GET_ALL,
-    GET_SINGLE,
     CREATE,
     UPDATE,
     DELETE

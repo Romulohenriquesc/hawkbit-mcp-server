@@ -32,7 +32,14 @@ public class TargetTypeService {
         return mgmtTargetTypeRestApi.getTargetTypes(rsqlParam, offset, limit, sortParam).getBody();
     }
 
-    @McpTool(name = "manageTargetType", description = "Manages the lifecycle of Target Types (Create, Read, Update, Delete).")
+    @McpTool(name = "getTargetType", description = "Get a specific Target Type by ID.")
+    public MgmtTargetType getTargetType(
+            @McpToolParam(description = "ID of the Target Type", required = true) Long targetTypeId) {
+        return mgmtTargetTypeRestApi.getTargetType(targetTypeId).getBody();
+    }
+
+    // @McpTool(name = "manageTargetType", description = "Manages the lifecycle of
+    // Target Types (Create, Read, Update, Delete).")
     public Object manageTargetType(
             @McpToolParam(description = "Action to be performed", required = true) TargetTypeCrudAction action,
 
@@ -42,11 +49,6 @@ public class TargetTypeService {
 
             @McpToolParam(description = "Object for update (Required for UPDATE)", required = false) MgmtTargetTypeRequestBodyPut updateBody) {
         switch (action) {
-            case GET:
-                if (targetTypeId == null)
-                    throw new IllegalArgumentException("ID is required for GET");
-                return mgmtTargetTypeRestApi.getTargetType(targetTypeId).getBody();
-
             case CREATE:
                 if (createBody == null || createBody.isEmpty())
                     throw new IllegalArgumentException("Body is required for CREATE");
@@ -68,19 +70,23 @@ public class TargetTypeService {
         }
     }
 
-    @McpTool(name = "manageTargetTypeCompatibility", description = "Manages the compatibility between Target Types and Distribution Set Types.")
+    @McpTool(name = "getCompatibleDistributionSets", description = "List compatible Distribution Set Types for a Target Type.")
+    public Object getCompatibleDistributionSets(
+            @McpToolParam(description = "ID of the Target Type", required = true) Long targetTypeId) {
+        return mgmtTargetTypeRestApi.getCompatibleDistributionSets(targetTypeId).getBody();
+    }
+
+    // @McpTool(name = "manageTargetTypeCompatibility", description = "Manages the
+    // compatibility between Target Types and Distribution Set Types.")
     public Object manageTargetTypeCompatibility(
             @McpToolParam(description = "ID of the Target Type", required = true) Long targetTypeId,
 
-            @McpToolParam(description = "Action of compatibility (LIST, ADD, REMOVE)", required = true) CompatibilityAction action,
+            @McpToolParam(description = "Action of compatibility (ADD, REMOVE)", required = true) CompatibilityAction action,
 
             @McpToolParam(description = "List of assignments to add (Required for ADD)", required = false) List<MgmtDistributionSetTypeAssignment> assignments,
 
             @McpToolParam(description = "ID of the Distribution Set Type to remove (Required for REMOVE)", required = false) Long distributionSetTypeId) {
         switch (action) {
-            case LIST:
-                return mgmtTargetTypeRestApi.getCompatibleDistributionSets(targetTypeId).getBody();
-
             case ADD:
                 if (assignments == null || assignments.isEmpty()) {
                     throw new IllegalArgumentException("List of assignments is required for ADD");
@@ -103,14 +109,12 @@ public class TargetTypeService {
 }
 
 enum TargetTypeCrudAction {
-    GET,
     CREATE,
     UPDATE,
     DELETE
 }
 
 enum CompatibilityAction {
-    LIST,
     ADD,
     REMOVE
 }

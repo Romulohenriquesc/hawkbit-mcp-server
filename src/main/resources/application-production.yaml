@@ -1,0 +1,3 @@
+hawkbit:
+  server:
+    mgmt-url: http://10.100.100.18:8080

@@ -36,7 +36,14 @@ public class RolloutService {
                 MgmtRestConstants.REQUEST_PARAMETER_REPRESENTATION_MODE_DEFAULT).getBody();
     }
 
-    @McpTool(name = "manageRollout", description = "Manages the lifecycle of a Rollout (Get single, Create, Update, Delete).")
+    @McpTool(name = "getRollout", description = "Get a Rollout by ID")
+    public Object getRollout(
+            @McpToolParam(description = "Rollout ID", required = true) Long rolloutId) {
+        return rolloutRestApi.getRollout(rolloutId).getBody();
+    }
+
+    // @McpTool(name = "manageRollout", description = "Manages the lifecycle of a
+    // Rollout (Get single, Create, Update, Delete).")
     Object manageRollout(
             @McpToolParam(description = "The action to perform (GET, CREATE, UPDATE, DELETE)", required = true) RolloutCrudAction action,
 
@@ -48,7 +55,11 @@ public class RolloutService {
 
             @McpToolParam(description = "Set to true to persist changes (CREATE, UPDATE, DELETE). Default false (preview only).", required = false) Boolean confirm) {
 
-        if (action != RolloutCrudAction.GET && (confirm == null || !confirm)) {
+        if (action != RolloutCrudAction.CREATE && (confirm == null || !confirm)) { // Changed GET to CREATE as default
+                                                                                   // safe check or just remove GET
+                                                                                   // logic
+            // Actually, since we removed GET, we only have modification actions.
+            // So if confirm is false, we preview.
             Map<String, Object> preview = new HashMap<>();
             preview.put("message", "PREVIEW MODE: No changes were made. Please confirm to proceed.");
             preview.put("action", action);
@@ -62,11 +73,6 @@ public class RolloutService {
         }
 
         switch (action) {
-            case GET:
-                if (rolloutId == null)
-                    throw new IllegalArgumentException("Rollout ID is required for GET action");
-                return rolloutRestApi.getRollout(rolloutId).getBody();
-
             case CREATE:
                 if (createBody == null)
                     throw new IllegalArgumentException("Create body is required for CREATE action");
@@ -88,7 +94,9 @@ public class RolloutService {
         }
     }
 
-    @McpTool(name = "manageRolloutState", description = "Handles the lifecycle and state management of a Rollout. Use to start, pause, resume, approve, deny, or retry.")
+    // @McpTool(name = "manageRolloutState", description = "Handles the lifecycle
+    // and state management of a Rollout. Use to start, pause, resume, approve,
+    // deny, or retry.")
     Object manageRolloutState(
             @McpToolParam(description = "ID of the Rollout", required = true) Long rolloutId,
 
@@ -195,7 +203,6 @@ enum RolloutAction {
 }
 
 enum RolloutCrudAction {
-    GET,
     CREATE,
     UPDATE,
     DELETE

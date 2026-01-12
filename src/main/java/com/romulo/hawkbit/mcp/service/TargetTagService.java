@@ -23,16 +23,23 @@ public class TargetTagService {
         this.mgmtTargetTagRestApi = hawkbitClient.mgmtService(MgmtTargetTagRestApi.class, tenant);
     }
 
-    @McpTool(name = "getTargetsTags", description = "Get all Targets Tags")
+    @McpTool(name = "getTargetsTags", description = "Get all Targets Tags. Prefer using rsqlParam to filter results.")
     PagedList<MgmtTag> getTargetsTags(
-            @McpToolParam(description = "Feed Item Query Language (FIQL) search filter.", required = false) String rsqlParam,
+            @McpToolParam(description = "Feed Item Query Language (FIQL) search filter. Use this to filter tags efficiently.", required = false) String rsqlParam,
             @McpToolParam(description = "Offset", required = true) int offset,
             @McpToolParam(description = "Limit. Max value: 50", required = true) int limit,
             @McpToolParam(description = "Sort parameter. Example: name:asc.", required = false) String sortParam) {
         return mgmtTargetTagRestApi.getTargetTags(rsqlParam, offset, limit, sortParam).getBody();
     }
 
-    @McpTool(name = "manageTargetTag", description = "Manages the lifecycle of Target Tags (Get, Create, Update, Delete).")
+    @McpTool(name = "getTargetTag", description = "Get a Target Tag by ID")
+    public Object getTargetTag(
+            @McpToolParam(description = "Tag ID", required = true) Long tagId) {
+        return mgmtTargetTagRestApi.getTargetTag(tagId).getBody();
+    }
+
+    // @McpTool(name = "manageTargetTag", description = "Manages the lifecycle of
+    // Target Tags (Get, Create, Update, Delete).")
     Object manageTargetTag(
             @McpToolParam(description = "The action to perform (GET, CREATE, UPDATE, DELETE)", required = true) TargetTagCrudAction action,
 
@@ -42,11 +49,6 @@ public class TargetTagService {
 
             @McpToolParam(description = "Tag body to update (Required for UPDATE)", required = false) MgmtTagRequestBodyPut tagToUpdate) {
         switch (action) {
-            case GET:
-                if (tagId == null)
-                    throw new IllegalArgumentException("Tag ID is required for GET action");
-                return mgmtTargetTagRestApi.getTargetTag(tagId).getBody();
-
             case CREATE:
                 if (tagsToCreate == null || tagsToCreate.isEmpty())
                     throw new IllegalArgumentException("List of tags is required for CREATE action");
@@ -70,17 +72,18 @@ public class TargetTagService {
 
     // Target tag assignments tools
 
-    @McpTool(name = "getAssignedTargets", description = "Handles the GET request of retrieving a list of assigned targets.")
+    @McpTool(name = "getAssignedTargets", description = "Handles the GET request of retrieving a list of assigned targets. Prefer using rsqlParam to filter results.")
     PagedList<MgmtTarget> getAssignedTargets(
             @McpToolParam(description = "The ID of the Target Tag", required = true) Long targetTagId,
-            @McpToolParam(description = "Feed Item Query Language (FIQL) search filter.", required = false) String rsqlParam,
+            @McpToolParam(description = "Feed Item Query Language (FIQL) search filter. Use this to filter assigned targets efficiently.", required = false) String rsqlParam,
             @McpToolParam(description = "Offset", required = true) int offset,
             @McpToolParam(description = "Limit. Max value: 50", required = true) int limit,
             @McpToolParam(description = "Sort parameter. Example: name:asc.", required = false) String sortParam) {
         return mgmtTargetTagRestApi.getAssignedTargets(targetTagId, rsqlParam, offset, limit, sortParam).getBody();
     }
 
-    @McpTool(name = "manageTagAssignments", description = "Manages target assignments for a Target Tag (Assign or Unassign targets).")
+    // @McpTool(name = "manageTagAssignments", description = "Manages target
+    // assignments for a Target Tag (Assign or Unassign targets).")
     String manageTagAssignments(
             @McpToolParam(description = "The ID of the Target Tag", required = true) Long targetTagId,
 
@@ -112,7 +115,6 @@ public class TargetTagService {
 }
 
 enum TargetTagCrudAction {
-    GET,
     CREATE,
     UPDATE,
     DELETE

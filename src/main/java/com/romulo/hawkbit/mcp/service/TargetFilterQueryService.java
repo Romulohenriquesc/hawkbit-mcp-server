@@ -31,7 +31,14 @@ public class TargetFilterQueryService {
                 MgmtRestConstants.REQUEST_PARAMETER_REPRESENTATION_MODE_DEFAULT).getBody();
     }
 
-    @McpTool(name = "manageTargetFilter", description = "Manages the lifecycle of a Target Filter Query (Get single, Create, Update, Delete).")
+    @McpTool(name = "getTargetFilter", description = "Get a Target Filter Query by ID")
+    public Object getTargetFilter(
+            @McpToolParam(description = "Filter ID", required = true) Long filterId) {
+        return targetFilterRestApi.getFilter(filterId).getBody();
+    }
+
+    // @McpTool(name = "manageTargetFilter", description = "Manages the lifecycle of
+    // a Target Filter Query (Get single, Create, Update, Delete).")
     public Object manageTargetFilter(
             @McpToolParam(description = "The action to perform (GET, CREATE, UPDATE, DELETE)", required = true) TargetFilterCrudAction action,
 
@@ -39,11 +46,6 @@ public class TargetFilterQueryService {
 
             @McpToolParam(description = "Filter body (Required for CREATE and UPDATE)", required = false) MgmtTargetFilterQueryRequestBody filterBody) {
         switch (action) {
-            case GET:
-                if (filterId == null)
-                    throw new IllegalArgumentException("Filter ID is required for GET action");
-                return targetFilterRestApi.getFilter(filterId).getBody();
-
             case CREATE:
                 if (filterBody == null)
                     throw new IllegalArgumentException("Filter body is required for CREATE action");
@@ -65,7 +67,14 @@ public class TargetFilterQueryService {
         }
     }
 
-    @McpTool(name = "manageTargetFilterAutoAssignment", description = "Manages the Distribution Set Auto-Assignment for a Target Filter.")
+    @McpTool(name = "getTargetFilterAutoAssignment", description = "Get the Distribution Set Auto-Assignment for a Target Filter.")
+    public Object getTargetFilterAutoAssignment(
+            @McpToolParam(description = "Filter ID", required = true) Long filterId) {
+        return targetFilterRestApi.getAssignedDistributionSet(filterId).getBody();
+    }
+
+    // @McpTool(name = "manageTargetFilterAutoAssignment", description = "Manages
+    // the Distribution Set Auto-Assignment for a Target Filter.")
     public Object manageTargetFilterAutoAssignment(
             @McpToolParam(description = "Filter ID", required = true) Long filterId,
 
@@ -73,9 +82,6 @@ public class TargetFilterQueryService {
 
             @McpToolParam(description = "Auto Assignment details (Required for ASSIGN)", required = false) MgmtDistributionSetAutoAssignment assignmentBody) {
         switch (action) {
-            case GET:
-                return targetFilterRestApi.getAssignedDistributionSet(filterId).getBody();
-
             case ASSIGN:
                 if (assignmentBody == null)
                     throw new IllegalArgumentException("Assignment body is required for ASSIGN action");
@@ -92,14 +98,12 @@ public class TargetFilterQueryService {
 }
 
 enum TargetFilterCrudAction {
-    GET,
     CREATE,
     UPDATE,
     DELETE
 }
 
 enum AutoAssignmentAction {
-    GET,
     ASSIGN,
     UNASSIGN
 }
