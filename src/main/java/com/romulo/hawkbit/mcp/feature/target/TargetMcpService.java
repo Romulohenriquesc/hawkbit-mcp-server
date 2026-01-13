@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.eclipse.hawkbit.mgmt.json.model.MgmtMetadata;
 import org.eclipse.hawkbit.mgmt.json.model.PagedList;
+import org.eclipse.hawkbit.mgmt.json.model.action.MgmtAction;
+import org.eclipse.hawkbit.mgmt.json.model.action.MgmtActionStatus;
 import org.eclipse.hawkbit.mgmt.json.model.tag.MgmtTag;
 import org.eclipse.hawkbit.mgmt.json.model.target.MgmtTarget;
 import org.eclipse.hawkbit.mgmt.json.model.target.MgmtTargetAttributes;
@@ -33,12 +35,12 @@ public class TargetMcpService {
         PagedList<MgmtTarget> getTargets(
                         @McpToolParam(description = "FIQL filter expression. Example: updatestatus==ERROR", required = false) String rsqlParam,
 
-                        @McpToolParam(description = "Page number (0-based).", required = true) int page,
+                        @McpToolParam(description = "Page offset (zero-based).", required = true) int offset,
 
                         @McpToolParam(description = "Page size (max 50).", required = true) int size,
 
                         @McpToolParam(description = "Sort parameter. Example: name:asc.", required = false) String sortParam) {
-                return targetApi.getTargets(rsqlParam, page, size, sortParam).getBody();
+                return targetApi.getTargets(rsqlParam, offset, size, sortParam).getBody();
         }
 
         @McpTool(name = "getTargetById", description = """
@@ -99,6 +101,70 @@ public class TargetMcpService {
         public List<MgmtTag> getTargetTags(
                         @McpToolParam(description = "Controller ID of the target.", required = true) String controllerId) {
                 return targetApi.getTags(controllerId).getBody();
+        }
+
+        @McpTool(name = "listTargetActions", description = """
+                        Retrieve the action history for a specific target.
+
+                        Supports pagination, sorting and FIQL-based filtering on actions.
+
+                        For supported filter fields and operators, see:
+                        hawkbit://actions/filter
+                        """)
+        public PagedList<MgmtAction> listTargetActions(
+                        @McpToolParam(description = "Controller ID of the target.", required = true) String controllerId,
+
+                        @McpToolParam(description = "FIQL filter expression for actions (optional).", required = false) String rsqlParam,
+
+                        @McpToolParam(description = "Page offset (zero-based).", required = true) int offset,
+
+                        @McpToolParam(description = "Page size (max 50).", required = true) int size,
+
+                        @McpToolParam(description = "Sort parameter (e.g. id:DESC).", required = false) String sort) {
+                return targetApi
+                                .getActionHistory(controllerId, rsqlParam, offset, size, sort)
+                                .getBody();
+        }
+
+        @McpTool(name = "listTargetActionStatus", description = """
+                        Retrieve the status history of a specific action on a specific target.
+
+                        This endpoint returns the chronological list of intermediate and reported
+                        statuses generated during the execution of an update action, including
+                        system-generated events and device feedbacks.
+                        """)
+        public PagedList<MgmtActionStatus> listActionStatus(
+                        @McpToolParam(description = "Controller ID of the target.", required = true) String controllerId,
+
+                        @McpToolParam(description = "ID of the action.", required = true) Long actionId,
+
+                        @McpToolParam(description = "Page offset (zero-based).", required = true) int offset,
+
+                        @McpToolParam(description = "Page size.", required = true) int size,
+
+                        @McpToolParam(description = "Sort parameter (e.g. timestamp:ASC).", required = false) String sort) {
+                return targetApi
+                                .getActionStatusList(controllerId, actionId, offset, size, sort)
+                                .getBody();
+        }
+
+        @McpTool(name = "getTargetActionById", description = """
+                        Retrieve a specific action for a specific target.
+
+                        This endpoint returns the current, aggregated state of the action,
+                        including its status, detailed status, rollout context and the
+                        last reported status code from the device.
+
+                        For the chronological execution history of this action,
+                        use the listActionStatus tool.
+                        """)
+        public MgmtAction getTargetAction(
+                        @McpToolParam(description = "Controller ID of the target.", required = true) String controllerId,
+
+                        @McpToolParam(description = "ID of the action.", required = true) Long actionId) {
+                return targetApi
+                                .getAction(controllerId, actionId)
+                                .getBody();
         }
 
 }

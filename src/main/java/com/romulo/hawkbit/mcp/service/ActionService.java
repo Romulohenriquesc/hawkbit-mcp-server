@@ -8,7 +8,7 @@ import org.springaicommunity.mcp.annotation.McpTool;
 import org.springaicommunity.mcp.annotation.McpToolParam;
 import org.springframework.stereotype.Service;
 
-@Service
+// @Service
 public class ActionService {
 
     private final MgmtActionRestApi actionRestApi;
