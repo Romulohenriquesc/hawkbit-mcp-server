@@ -1,7 +1,9 @@
 package com.romulo.hawkbit.mcp.feature.target;
 
+import org.eclipse.hawkbit.mgmt.json.model.MgmtMetadata;
 import org.eclipse.hawkbit.mgmt.json.model.PagedList;
 import org.eclipse.hawkbit.mgmt.json.model.target.MgmtTarget;
+import org.eclipse.hawkbit.mgmt.json.model.target.MgmtTargetAttributes;
 import org.eclipse.hawkbit.mgmt.rest.api.MgmtTargetRestApi;
 import org.eclipse.hawkbit.sdk.HawkbitClient;
 import org.eclipse.hawkbit.sdk.Tenant;
@@ -35,4 +37,40 @@ public class TargetMcpService {
             @McpToolParam(description = "Sort parameter. Example: name:asc.", required = false) String sortParam) {
         return targetApi.getTargets(rsqlParam, page, size, sortParam).getBody();
     }
+
+    @McpTool(name = "getTargetById", description = """
+            Retrieve a single target (device) by its unique ID.
+
+            Returns the full target representation, including status,
+            target type, poll status and HAL links.
+            """)
+    public MgmtTarget getTargetById(
+            @McpToolParam(description = "Controller ID of the target (unique identifier used for all target interactions).", required = true) String controllerId) {
+        return targetApi.getTarget(controllerId).getBody();
+    }
+
+    @McpTool(name = "getTargetMetadata", description = """
+            Retrieve metadata for a specific target.
+            Use this tool only after identifying a target of interest.
+            For filtering targets by metadata, use listTargets with metadata.<key> filters.
+            """)
+    public PagedList<MgmtMetadata> getTargetMetadata(
+            @McpToolParam(description = "Controller ID of the target.", required = true) String controllerId) {
+        return targetApi.getMetadata(controllerId).getBody();
+    }
+
+    @McpTool(name = "getTargetAttributes", description = """
+            Retrieve runtime attributes reported by a target itself via the DDI API.
+
+            Attributes represent device-reported characteristics and state, and are
+            read-only from the management perspective.
+
+            Use this tool only after identifying a specific target.
+            For filtering targets by attributes, use listTargets with attribute.<key> filters.
+            """)
+    public MgmtTargetAttributes getTargetAttributes(
+            @McpToolParam(description = "Controller ID of the target.", required = true) String controllerId) {
+        return targetApi.getAttributes(controllerId).getBody();
+    }
+
 }
