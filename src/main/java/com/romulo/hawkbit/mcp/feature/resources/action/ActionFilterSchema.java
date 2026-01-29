@@ -1,6 +1,7 @@
-package com.romulo.hawkbit.mcp.feature.action;
+package com.romulo.hawkbit.mcp.feature.resources.action;
 
 import com.romulo.hawkbit.mcp.feature.enumeration.Operator;
+import com.romulo.hawkbit.mcp.feature.enumeration.TargetUpdateStatus;
 
 public class ActionFilterSchema {
 
@@ -35,6 +36,10 @@ public class ActionFilterSchema {
                 %s
 
                 %s
-                """.formatted(FIELDS, Operator.documentation());
+
+                UPDATE STATUSES:
+                %s
+
+                """.formatted(FIELDS, Operator.documentation(), TargetUpdateStatus.getStatuses());
     }
 }

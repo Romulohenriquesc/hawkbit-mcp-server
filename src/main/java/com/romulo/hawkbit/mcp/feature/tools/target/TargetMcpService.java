@@ -1,4 +1,4 @@
-package com.romulo.hawkbit.mcp.feature.target;
+package com.romulo.hawkbit.mcp.feature.tools.target;
 
 import java.util.List;
 

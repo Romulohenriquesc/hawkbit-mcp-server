@@ -1,4 +1,4 @@
-package com.romulo.hawkbit.mcp.feature.action;
+package com.romulo.hawkbit.mcp.feature.tools.action;
 
 import org.eclipse.hawkbit.mgmt.json.model.PagedList;
 import org.eclipse.hawkbit.mgmt.json.model.action.MgmtAction;

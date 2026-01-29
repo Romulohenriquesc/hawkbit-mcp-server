@@ -1,4 +1,4 @@
-package com.romulo.hawkbit.mcp.feature.target;
+package com.romulo.hawkbit.mcp.feature.resources.target;
 
 import com.romulo.hawkbit.mcp.feature.enumeration.Operator;
 
